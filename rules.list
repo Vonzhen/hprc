@@ -23,6 +23,6 @@ geosite-telegram.srs|https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@
 geosite-spotify.srs|https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/spotify.srs
 geosite-tiktok.srs|https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo-lite/geosite/tiktok.srs
 geosite-geolocation-!cn.srs|https://testingcf.jsdelivr.net/gh/MetaCubeX/meta-rules-dat@sing/geo/geosite/geolocation-!cn.srs
-geosite-twitter|https://github.com/MetaCubeX/meta-rules-dat/blob/sing/geo/geosite/twitter.srs
-geoip-twitter|https://github.com/MetaCubeX/meta-rules-dat/blob/sing/geo/geoip/twitter.srs
+geosite-twitter.srs|https://github.com/MetaCubeX/meta-rules-dat/blob/sing/geo/geosite/twitter.srs
+geoip-twitter.srs|https://github.com/MetaCubeX/meta-rules-dat/blob/sing/geo/geoip/twitter.srs
 goesite-emby.srs|https://github.com/Vonzhen/sing-box-rulesets/blob/master/rules/goesite-emby.srs
