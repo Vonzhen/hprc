@@ -70,6 +70,8 @@ TG_ENABLE=${TG_ENABLE}
 TG_BOT_TOKEN="${TG_BOT_TOKEN}"
 TG_CHAT_ID="${TG_CHAT_ID}"
 TG_LOCATION_TAG="${TG_LOCATION_TAG}"
+# 新增代理变量支持
+GITHUB_PROXY=""
 HOMEPROXY_DIR="/etc/homeproxy"
 RULESET_DIR="/etc/homeproxy/ruleset"
 BACKUP_DIR="/etc/hprc/backup"
@@ -81,8 +83,8 @@ echo -e "-> 正在从 ${GITHUB_USER} 的仓库拉取核心文件..."
 download_file() {
     local remote_path="$1"
     local local_path="$2"
-    # 重试3次以应对网络波动
-    wget -q --no-check-certificate -t 3 -O "$local_path" "${REPO_URL}/${remote_path}"
+    # 增加重试机制和超时
+    wget -q --no-check-certificate -t 3 -T 15 -O "$local_path" "${REPO_URL}/${remote_path}"
     if [ $? -ne 0 ] || [ ! -s "$local_path" ]; then
         echo -e "${RED}下载失败或文件为空: ${remote_path}${NC}"
         echo -e "请检查 GitHub 用户名是否正确，或仓库是否为 Public。"
@@ -97,6 +99,8 @@ download_file "rules.list" "${INSTALL_DIR}/rules.list"
 download_file "modules/utils.sh" "${INSTALL_DIR}/modules/utils.sh"
 download_file "modules/core_update.sh" "${INSTALL_DIR}/modules/core_update.sh"
 download_file "modules/core_notify.sh" "${INSTALL_DIR}/modules/core_notify.sh"
+# [新增] 下载系统管理模块
+download_file "modules/core_system.sh" "${INSTALL_DIR}/modules/core_system.sh"
 
 # 6. 完成安装
 chmod -R 755 "${INSTALL_DIR}"
