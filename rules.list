@@ -1,4 +1,6 @@
 geosite-emby.srs|https://raw.githubusercontent.com/Vonzhen/sing-box-rulesets/master/rules/geosite-emby.srs
+geoip-private.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/private.srs
+geosite-private.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/private.srs
 geoip-cn.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/cn.srs
 geosite-cn.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/cn.srs
 geosite-apple.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/apple.srs
@@ -7,6 +9,7 @@ geoip-telegram.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/si
 geosite-telegram.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/telegram.srs
 geosite-openai.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/openai.srs
 geosite-youtube.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/youtube.srs
+geosite-gemini.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google-gemini.srs
 geoip-google.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/google.srs
 geosite-google.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/google.srs
 geosite-viu.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/viu.srs
@@ -22,5 +25,7 @@ geosite-hinet-eca.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat
 geosite-nbcuniversal.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/nbcuniversal.srs
 geosite-tiktok.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/tiktok.srs
 geosite-tencent.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/tencent.srs
+geoip-twitter.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geoip/twitter.srs
+geosite-twitter.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/twitter.srs
 geosite-geolocation-!cn.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/geolocation-!cn.srs
 geosite-category-ads-all.srs|https://raw.githubusercontent.com/MetaCubeX/meta-rules-dat/sing/geo/geosite/category-ads-all.srs
