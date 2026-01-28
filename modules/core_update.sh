@@ -1,108 +1,138 @@
 #!/bin/sh
 
-# ==============================================================================
-# HPRC - HomeProxy Ruleset Controller 一键安装脚本
-# ==============================================================================
+source /etc/hprc/modules/utils.sh
+source /etc/hprc/modules/core_notify.sh
+[ -f "/etc/hprc/config.conf" ] && source /etc/hprc/config.conf
 
-# --- [Fork 用户请修改这里] ---
-# 将下面的用户名改为你的 GitHub 用户名，即可从你的仓库安装
-GITHUB_USER="Vonzhen" 
-# ---------------------------
+# 默认变量 (如果配置文件没定义)
+TEMP_DIR="/etc/hprc/temp"
+LIVE_DIR="${RULESET_DIR:-/etc/homeproxy/ruleset}"
+BACKUP_DIR="${BACKUP_DIR:-/etc/hprc/backup}"
+RULES_FILE="/etc/hprc/rules.list"
+MIN_SIZE=10
 
-REPO_NAME="hprc"
-BRANCH="master"
-REPO_URL="https://raw.githubusercontent.com/${GITHUB_USER}/${REPO_NAME}/${BRANCH}"
+# 清理并创建临时目录
+cleanup_temp() {
+    rm -rf "$TEMP_DIR"
+    mkdir -p "$TEMP_DIR"
+}
 
-INSTALL_DIR="/etc/hprc"
-BIN_LINK="/usr/bin/hprc"
-
-# 颜色定义
-RED='\033[0;31m'
-GREEN='\033[0;32m'
-BLUE='\033[0;34m'
-NC='\033[0m'
-
-echo -e "${BLUE}==========================================================${NC}"
-echo -e "           ${GREEN}HPRC 自动安装程序${NC} (From: ${GITHUB_USER})"
-echo -e "${BLUE}==========================================================${NC}"
-
-# 1. 检查依赖
-echo -e "-> 检查系统依赖..."
-for cmd in wget tar md5sum; do
-    if ! command -v "$cmd" > /dev/null; then
-        echo -e "${RED}错误: 未找到 $cmd 命令，请先安装 (opkg install $cmd)。${NC}"
-        exit 1
-    fi
-done
-
-# 2. 交互式配置 (已调整：自动处理括号)
-echo -e "-> 开始配置 (直接回车可跳过选填项)..."
-read -p "请输入 Telegram Bot Token: " TG_BOT_TOKEN
-read -p "请输入 Telegram Chat ID: " TG_CHAT_ID
-
-TG_ENABLE=0
-if [ -n "$TG_BOT_TOKEN" ] && [ -n "$TG_CHAT_ID" ]; then
-    TG_ENABLE=1
-    # 修改点：提示用户直接输入名称，脚本自动加括号
-    read -p "请输入位置名称 (无需输入括号，例如: 家): " LOCATION_INPUT
+# --- 功能 1: 检查更新 (只下载到 temp，不覆盖) ---
+check_updates() {
+    log_info "正在从 GitHub 获取最新规则..."
+    cleanup_temp
     
-    # 如果用户没填，默认设为 OpenWrt
-    if [ -z "$LOCATION_INPUT" ]; then
-        LOCATION_INPUT="OpenWrt"
-    fi
+    local update_count=0
+    local change_log=""
+
+    # 简单的表头
+    printf "%-30s | %-10s | %-10s\n" "规则名称" "状态" "判定"
+    print_line
+
+    while IFS='|' read -r filename url || [ -n "$filename" ]; do
+        if [ -z "$filename" ] || echo "$filename" | grep -q "^#"; then continue; fi
+        
+        temp_file="$TEMP_DIR/$filename"
+        live_file="$LIVE_DIR/$filename"
+        
+        # 下载
+        if ! wget -q -T 15 -t 2 -O "$temp_file" "$url" --no-check-certificate; then
+             printf "%-30s | %-10s | ${RED}%-10s${NC}\n" "$filename" "下载失败" "跳过"
+             continue
+        fi
+
+        # 大小检查
+        if [ "$(wc -c < "$temp_file")" -lt "$MIN_SIZE" ]; then
+             rm -f "$temp_file"
+             continue
+        fi
+
+        # MD5 对比
+        new_md5=$(md5sum "$temp_file" | awk '{print $1}')
+        if [ -f "$live_file" ]; then
+            old_md5=$(md5sum "$live_file" | awk '{print $1}')
+            if [ "$new_md5" != "$old_md5" ]; then
+                printf "%-30s | %-10s | ${YELLOW}%-10s${NC}\n" "$filename" "MD5不同" "需更新"
+                update_count=$((update_count + 1))
+                change_log="${change_log}%0A- ${filename} (更新)"
+            else
+                printf "%-30s | %-10s | ${GREEN}%-10s${NC}\n" "$filename" "一致" "无变化"
+                rm -f "$temp_file" # 无需更新则删除临时文件
+            fi
+        else
+            printf "%-30s | %-10s | ${BLUE}%-10s${NC}\n" "$filename" "不存在" "新增"
+            update_count=$((update_count + 1))
+            change_log="${change_log}%0A- ${filename} (新增)"
+        fi
+    done < "$RULES_FILE"
     
-    # 自动拼接括号
-    TG_LOCATION_TAG="【${LOCATION_INPUT}】"
-else
-    echo -e "${BLUE}提示: 未提供完整 TG 信息，通知功能将默认关闭。${NC}"
-    TG_LOCATION_TAG="【OpenWrt】"
-fi
-
-# 3. 准备目录
-mkdir -p "${INSTALL_DIR}/modules"
-mkdir -p "${INSTALL_DIR}/temp"
-mkdir -p "${INSTALL_DIR}/backup"
-
-# 4. 生成配置文件
-cat > "${INSTALL_DIR}/config.conf" <<EOF
-# HPRC 配置文件
-TG_ENABLE=${TG_ENABLE}
-TG_BOT_TOKEN="${TG_BOT_TOKEN}"
-TG_CHAT_ID="${TG_CHAT_ID}"
-TG_LOCATION_TAG="${TG_LOCATION_TAG}"
-HOMEPROXY_DIR="/etc/homeproxy"
-RULESET_DIR="/etc/homeproxy/ruleset"
-BACKUP_DIR="/etc/hprc/backup"
-EOF
-
-# 5. 从 GitHub 拉取文件
-echo -e "-> 正在从 ${GITHUB_USER} 的仓库拉取核心文件..."
-
-download_file() {
-    local remote_path="$1"
-    local local_path="$2"
-    # 增加 -H 'Cache-Control: no-cache' 防止 GitHub 缓存
-    wget -q --no-check-certificate -H 'Cache-Control: no-cache' -O "$local_path" "${REPO_URL}/${remote_path}"
-    if [ $? -ne 0 ] || [ ! -s "$local_path" ]; then
-        echo -e "${RED}下载失败或文件为空: ${remote_path}${NC}"
-        echo -e "请检查 GitHub 用户名是否正确，或仓库是否为 Public。"
-        exit 1
+    print_line
+    
+    # 将结果写入临时状态文件，供主程序读取
+    echo "$update_count" > /tmp/hprc_update_count
+    echo "$change_log" > /tmp/hprc_change_log
+    
+    if [ "$update_count" -gt 0 ]; then
+        log_info "检测到 $update_count 个规则需要更新。"
+        return 0
     else
-        echo -e "  - 已下载: ${remote_path}"
+        log_success "所有规则已是最新。"
+        return 1
     fi
 }
 
-download_file "hprc.sh" "${INSTALL_DIR}/hprc.sh"
-download_file "rules.list" "${INSTALL_DIR}/rules.list"
-download_file "modules/utils.sh" "${INSTALL_DIR}/modules/utils.sh"
-download_file "modules/core_update.sh" "${INSTALL_DIR}/modules/core_update.sh"
-download_file "modules/core_notify.sh" "${INSTALL_DIR}/modules/core_notify.sh"
-
-# 6. 完成安装
-chmod -R 755 "${INSTALL_DIR}"
-ln -sf "${INSTALL_DIR}/hprc.sh" "${BIN_LINK}"
-
-echo -e "${BLUE}==========================================================${NC}"
-echo -e "${GREEN}安装成功！${NC}"
-echo -e "请在终端输入 ${GREEN}hprc${NC} 启动管理面板。"
-echo -e "${BLUE}==========================================================${NC}"
+# --- 功能 2: 应用更新 (备份 -> 移动 -> 重启 -> 回滚) ---
+apply_updates() {
+    log_info "开始应用更新..."
+    
+    # 1. 备份
+    log_info "备份当前规则到 $BACKUP_DIR..."
+    rm -rf "$BACKUP_DIR"
+    mkdir -p "$BACKUP_DIR"
+    cp -a "$LIVE_DIR"/* "$BACKUP_DIR"/ 2>/dev/null
+    
+    # 2. 覆盖 (将 temp 中剩余的文件移动过去)
+    log_info "覆盖新规则..."
+    # 确保目标目录存在
+    mkdir -p "$LIVE_DIR"
+    # 仅移动 temp 中存在的文件（这些是 MD5 变动过的）
+    if [ "$(ls -A $TEMP_DIR)" ]; then
+        cp -f "$TEMP_DIR"/* "$LIVE_DIR"/
+    else
+        log_warn "临时目录为空，没有文件需要覆盖。"
+        return 0
+    fi
+    
+    # 3. 重启服务
+    log_info "重启 HomeProxy 服务..."
+    /etc/init.d/homeproxy restart
+    sleep 5
+    
+    # 4. 状态检测与回滚
+    if /etc/init.d/homeproxy running; then
+        log_success "HomeProxy 启动成功，更新完成！"
+        
+        # 发送成功通知
+        change_log=$(cat /tmp/hprc_change_log 2>/dev/null)
+        send_tg_message "✅ 规则更新成功！${change_log}"
+        
+        # 清理
+        rm -rf "$TEMP_DIR"
+    else
+        log_error "HomeProxy 启动失败！正在回滚..."
+        send_tg_message "⚠️ 规则更新导致服务启动失败，正在回滚..."
+        
+        # 回滚操作
+        rm -rf "$LIVE_DIR"/*
+        cp -a "$BACKUP_DIR"/* "$LIVE_DIR"/
+        /etc/init.d/homeproxy restart
+        
+        if /etc/init.d/homeproxy running; then
+            log_success "已回滚到旧版本，服务恢复正常。"
+            send_tg_message "🚫 已回滚到旧版本，服务已恢复。"
+        else
+            log_error "致命错误：回滚后服务仍无法启动，请手动检查！"
+            send_tg_message "❌ 致命错误：回滚失败，请手动干预！"
+        fi
+    fi
+}
