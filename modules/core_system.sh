@@ -1,4 +1,3 @@
-cat > /etc/hprc/modules/core_system.sh << 'EOF'
 #!/bin/sh
 
 source /etc/hprc/modules/utils.sh
@@ -128,4 +127,3 @@ EOF
     log_success "配置已更新！"
     sleep 1
 }
-EOF
