@@ -81,8 +81,8 @@ echo -e "-> 正在从 ${GITHUB_USER} 的仓库拉取核心文件..."
 download_file() {
     local remote_path="$1"
     local local_path="$2"
-    # 增加 -H 'Cache-Control: no-cache' 防止 GitHub 缓存
-    wget -q --no-check-certificate -H 'Cache-Control: no-cache' -O "$local_path" "${REPO_URL}/${remote_path}"
+    # 重试3次以应对网络波动
+    wget -q --no-check-certificate -t 3 -O "$local_path" "${REPO_URL}/${remote_path}"
     if [ $? -ne 0 ] || [ ! -s "$local_path" ]; then
         echo -e "${RED}下载失败或文件为空: ${remote_path}${NC}"
         echo -e "请检查 GitHub 用户名是否正确，或仓库是否为 Public。"
