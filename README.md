@@ -29,18 +29,28 @@
 
 ## 🚀 怎么用？
 
-### 1. 安装
+### 1. 安装前的准备 (重要)
 
-在 OpenWrt 的 SSH 里复制这行命令回车：
+本脚本需要完整版的 `wget` 来确保下载稳定性（支持断点续传和重试）。OpenWrt 自带的精简版可能会报错。
+请先在 SSH 执行：
+
+```bash
+opkg update && opkg install wget-ssl
+
+```
+
+### 2. 一键安装
+
+环境准备好后，复制这行命令回车即可：
 
 ```bash
 sh -c "$(wget -qO- https://raw.githubusercontent.com/Vonzhen/hprc/master/install.sh)"
 
 ```
 
-### 2. 使用
+### 3. 使用
 
-随时输入命令调出菜单：
+安装完成后，随时输入命令调出菜单：
 
 ```bash
 hprc
@@ -49,7 +59,7 @@ hprc
 
 *你可以用它检测更新、强制更新、或者修改配置（比如换个 TG 通知机器人）。*
 
-### 3. 自动更新 (可选)
+### 4. 自动更新 (可选)
 
 想每天早上 7:20 自动跑一次？在 `crontab -e` 里加一行：
 
